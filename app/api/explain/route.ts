@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 export async function POST(req: Request) {
   try {
@@ -11,27 +16,73 @@ export async function POST(req: Request) {
       );
     }
 
-    // Placeholder logic (OpenAI comes next)
-    return NextResponse.json({
-      summary: "This is a placeholder explanation.",
-      obligations: [
-        "You must comply with council requirements as outlined."
-      ],
-      options: [
-        "You may contact the council for clarification.",
-        "You may review the cited policy sections."
-      ],
-      sources: [
+    const systemPrompt = `
+You are a Local Government Policy Interpreter.
+
+Rules:
+- Explain content in plain English.
+- Do NOT provide legal advice.
+- If policy context is missing, say so explicitly.
+- Always respond using the defined JSON structure.
+- Be neutral, accurate, and cautious.
+`;
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4.1-mini",
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: systemPrompt },
         {
-          document: "Sample Council Policy",
-          section: "1.2"
+          role: "user",
+          content: `Explain the following council-related text:\n\n${text}`
         }
-      ]
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "policy_explanation",
+          schema: {
+            type: "object",
+            properties: {
+              summary: { type: "string" },
+              obligations: {
+                type: "array",
+                items: { type: "string" }
+              },
+              options: {
+                type: "array",
+                items: { type: "string" }
+              },
+              risks: {
+                type: "array",
+                items: { type: "string" }
+              },
+              confidence: {
+                type: "string",
+                description: "high | medium | low"
+              }
+            },
+            required: [
+              "summary",
+              "obligations",
+              "options",
+              "risks",
+              "confidence"
+            ]
+          }
+        }
+      }
     });
 
+    const content = response.choices[0].message.content;
+    const parsed = JSON.parse(content ?? "{}");
+
+    return NextResponse.json(parsed);
+
   } catch (err) {
+    console.error(err);
     return NextResponse.json(
-      { error: "Server error" },
+      { error: "AI processing failed" },
       { status: 500 }
     );
   }

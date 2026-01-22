@@ -79,4 +79,19 @@ export default function Home() {
       )}
     </main>
   );
+  {result.risks && (
+  <div>
+    <strong>Risks</strong>
+    <ul className="list-disc ml-5">
+      {result.risks.map((r: string, i: number) => (
+        <li key={i}>{r}</li>
+      ))}
+    </ul>
+  </div>
+)}
+
+<p>
+  <strong>Confidence</strong>: {result.confidence}
+</p>
+
 }
