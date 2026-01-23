@@ -53,7 +53,18 @@ Rules:
       throw new Error("Empty response from OpenAI");
     }
 
-    const parsed = JSON.parse(content);
+    let parsed;
+try {
+  parsed = JSON.parse(content);
+} catch {
+  return NextResponse.json(
+    {
+      error: "Model returned invalid JSON",
+      raw: content
+    },
+    { status: 500 }
+  );
+}
 
     return NextResponse.json(parsed);
 
