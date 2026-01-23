@@ -100,21 +100,25 @@ export default function Home() {
       />
 
       {/* --- File Upload Input --- */}
+      <label className="inline-block bg-blue-600 text-white px-5 py-2 rounded-lg cursor-pointer mb-4 hover:bg-blue-700">
+        Choose File
       <input
-        type="file"
-        accept=".pdf,.txt,.docx"
-        onChange={handleFileUpload}
-        className="mb-4"
+      type="file"
+      accept=".pdf,.txt,.docx"
+      onChange={handleFileUpload}
+      className="hidden" // hide default input
       />
+    </label>
+
 
       {/* --- Explain Button --- */}
       <button
-        onClick={handleExplain}
-        disabled={loading}
-        className="bg-black text-white px-4 py-2 rounded mb-4 disabled:opacity-50"
-      >
-        {loading ? "Explaining..." : "Explain"}
+      onClick={handleExplain}
+      disabled={loading}
+      className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+      {loading ? "Explaining..." : "Explain"}
       </button>
+
 
       {/* --- Error Display --- */}
       {error && (
