@@ -22,13 +22,21 @@ You are a Local Government Policy Interpreter.
 Rules:
 - Explain content in plain English.
 - Do NOT provide legal advice.
-- If policy context is missing, say so explicitly.
-- Always respond using the defined JSON structure.
+- If policy context is missing or unclear, say so.
 - Be neutral, accurate, and cautious.
+- Respond ONLY in valid JSON using this structure:
+
+{
+  "summary": string,
+  "obligations": string[],
+  "options": string[],
+  "risks": string[],
+  "confidence": "high" | "medium" | "low"
+}
 `;
 
     const response = await client.chat.completions.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-4o-mini",
       temperature: 0.2,
       messages: [
         { role: "system", content: systemPrompt },
@@ -36,51 +44,21 @@ Rules:
           role: "user",
           content: `Explain the following council-related text:\n\n${text}`
         }
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "policy_explanation",
-          schema: {
-            type: "object",
-            properties: {
-              summary: { type: "string" },
-              obligations: {
-                type: "array",
-                items: { type: "string" }
-              },
-              options: {
-                type: "array",
-                items: { type: "string" }
-              },
-              risks: {
-                type: "array",
-                items: { type: "string" }
-              },
-              confidence: {
-                type: "string",
-                description: "high | medium | low"
-              }
-            },
-            required: [
-              "summary",
-              "obligations",
-              "options",
-              "risks",
-              "confidence"
-            ]
-          }
-        }
-      }
+      ]
     });
 
     const content = response.choices[0].message.content;
-    const parsed = JSON.parse(content ?? "{}");
+
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    const parsed = JSON.parse(content);
 
     return NextResponse.json(parsed);
 
-  } catch (err) {
-    console.error(err);
+  } catch (err: any) {
+    console.error("AI ERROR:", err);
     return NextResponse.json(
       { error: "AI processing failed" },
       { status: 500 }
