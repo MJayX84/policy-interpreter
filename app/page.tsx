@@ -43,20 +43,7 @@ export default function Home() {
         {loading ? "Explaining..." : "Explain"}
       </button>
       
-  {result.risks && (
-  <div>
-    <strong>Risks</strong>
-    <ul className="list-disc ml-5">
-      {result.risks.map((r: string, i: number) => (
-        <li key={i}>{r}</li>
-      ))}
-    </ul>
-  </div>
-)}
-
-<p>
-  <strong>Confidence</strong>: {result.confidence}
-</p>
+ 
       {result && (
         <div className="border rounded p-4 space-y-4">
           <p><strong>Summary</strong>: {result.summary}</p>
@@ -89,6 +76,20 @@ export default function Home() {
               ))}
             </ul>
           </div>
+           {result.risks && (
+  <div>
+    <strong>Risks</strong>
+    <ul className="list-disc ml-5">
+      {result.risks.map((r: string, i: number) => (
+        <li key={i}>{r}</li>
+      ))}
+    </ul>
+  </div>
+)}
+
+<p>
+  <strong>Confidence</strong>: {result.confidence}
+</p>
         </div>
       )}
     </main>
