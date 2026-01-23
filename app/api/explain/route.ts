@@ -58,10 +58,14 @@ Rules:
     return NextResponse.json(parsed);
 
   } catch (err: any) {
-    console.error("AI ERROR:", err);
-    return NextResponse.json(
-      { error: "AI processing failed" },
-      { status: 500 }
-    );
+    console.error("FULL AI ERROR OBJECT:", err);
+
+  return NextResponse.json(
+    {
+      error: "AI processing failed",
+      details: err?.message || err?.toString()
+    },
+    { status: 500 }
+  );
   }
 }
