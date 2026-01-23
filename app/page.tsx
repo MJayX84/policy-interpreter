@@ -2,24 +2,54 @@
 
 import { useState } from "react";
 
+type ExplainResult = {
+  summary: string;
+  obligations: string[];
+  options: string[];
+  risks?: string[];
+  confidence?: string;
+};
+
 export default function Home() {
   const [input, setInput] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ExplainResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleExplain() {
+    console.log("Explain clicked");
+
+    if (!input.trim()) {
+      setError("Please enter some text to explain.");
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     setResult(null);
 
-    const res = await fetch("/api/explain", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: input })
-    });
+    try {
+      const res = await fetch("/api/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: input })
+      });
 
-    const data = await res.json();
-    setResult(data);
-    setLoading(false);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Request failed");
+      }
+
+      const data = await res.json();
+      console.log("API RESPONSE:", data);
+
+      setResult(data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -27,6 +57,11 @@ export default function Home() {
       <h1 className="text-3xl font-semibold mb-4">
         Council Policy Interpreter
       </h1>
+
+      <p className="text-gray-600 mb-6">
+        Paste your council letter or describe your situation.
+        Get a clear explanation of your rights and obligations.
+      </p>
 
       <textarea
         className="w-full h-40 border rounded-md p-3 mb-4"
@@ -38,20 +73,27 @@ export default function Home() {
       <button
         onClick={handleExplain}
         disabled={loading}
-        className="bg-black text-white px-4 py-2 rounded mb-6"
+        className="bg-black text-white px-4 py-2 rounded mb-4 disabled:opacity-50"
       >
         {loading ? "Explaining..." : "Explain"}
       </button>
-      
- 
+
+      {error && (
+        <p className="text-red-600 mb-4">
+          {error}
+        </p>
+      )}
+
       {result && (
         <div className="border rounded p-4 space-y-4">
-          <p><strong>Summary</strong>: {result.summary}</p>
+          <p>
+            <strong>Summary</strong>: {result.summary}
+          </p>
 
           <div>
             <strong>Obligations</strong>
             <ul className="list-disc ml-5">
-              {result.obligations?.map((o: string, i: number) => (
+              {result.obligations.map((o, i) => (
                 <li key={i}>{o}</li>
               ))}
             </ul>
@@ -60,40 +102,30 @@ export default function Home() {
           <div>
             <strong>Options</strong>
             <ul className="list-disc ml-5">
-              {result.options?.map((o: string, i: number) => (
+              {result.options.map((o, i) => (
                 <li key={i}>{o}</li>
               ))}
             </ul>
           </div>
 
-          <div>
-            <strong>Sources</strong>
-            <ul className="list-disc ml-5">
-              {result.sources?.map((s: any, i: number) => (
-                <li key={i}>
-                  {s.document} – Section {s.section}
-                </li>
-              ))}
-            </ul>
-          </div>
-           {result.risks && (
-  <div>
-    <strong>Risks</strong>
-    <ul className="list-disc ml-5">
-      {result.risks.map((r: string, i: number) => (
-        <li key={i}>{r}</li>
-      ))}
-    </ul>
-  </div>
-)}
+          {result.risks && result.risks.length > 0 && (
+            <div>
+              <strong>Risks</strong>
+              <ul className="list-disc ml-5">
+                {result.risks.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-<p>
-  <strong>Confidence</strong>: {result.confidence}
-</p>
+          {result.confidence && (
+            <p>
+              <strong>Confidence</strong>: {result.confidence}
+            </p>
+          )}
         </div>
       )}
     </main>
   );
-
-
 }
