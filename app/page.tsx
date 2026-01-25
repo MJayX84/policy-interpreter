@@ -2,172 +2,109 @@
 
 import { useState } from "react";
 
-type ExplainResult = {
-  summary: string;
-  obligations: string[];
-  options: string[];
-  risks?: string[];
-  confidence?: string;
-};
-
 export default function Home() {
-  const [input, setInput] = useState("");
-  const [result, setResult] = useState<ExplainResult | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [policyText, setPolicyText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Optional: store uploaded document ID for retrieval
-  const [uploadedDocId, setUploadedDocId] = useState<number | null>(null);
-
-  // --- File Upload Handler ---
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files?.length) return;
-    const file = e.target.files[0];
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error("File upload failed");
-      const data = await res.json();
-      console.log("Upload success:", data);
-      setUploadedDocId(data.docId); // store for later use in /api/explain
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "File upload error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // --- Explain Handler ---
-  async function handleExplain() {
-    console.log("Explain clicked");
-
-    if (!input.trim() && uploadedDocId === null) {
-      setError("Please enter text or upload a document to explain.");
-      return;
-    }
-
+  const handleExplain = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
 
+    const formData = new FormData();
+    if (file) formData.append("file", file);
+    if (policyText.trim()) formData.append("policyText", policyText);
+
     try {
-      const res = await fetch("/api/explain", {
+      const response = await fetch("/api/explain", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: input, docId: uploadedDocId }),
+        body: formData,
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Request failed");
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Interpretation failed");
       }
 
-      const data = await res.json();
-      console.log("API RESPONSE:", data);
+      const data = await response.json();
       setResult(data);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Something went wrong");
+      setError(err.message || "Unexpected error");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <main className="min-h-screen p-8 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-semibold mb-4">
-        Council Policy Interpreter
-      </h1>
+    <main className="container">
+      <h1 className="title">Council Policy Interpreter</h1>
 
-      <p className="text-gray-600 mb-4">
-        Paste your council letter or describe your situation, or upload a policy document.
-      </p>
+      <div className="card">
+        <textarea
+          placeholder="Paste council policy text here (optional if uploading PDF)"
+          value={policyText}
+          onChange={(e) => setPolicyText(e.target.value)}
+          rows={8}
+        />
 
-      {/* --- Text Input --- */}
-      <textarea
-        className="w-full h-40 border rounded-md p-3 mb-4"
-        placeholder="Paste your council letter or describe your situation..."
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-      />
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,.txt"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+        />
 
-      {/* --- File Upload Input --- */}
-      <label className="inline-block bg-blue-600 text-white px-5 py-2 rounded-lg cursor-pointer mb-4 hover:bg-blue-700">
-        Choose File
-      <input
-      type="file"
-      accept=".pdf,.txt,.docx"
-      onChange={handleFileUpload}
-      className="hidden" // hide default input
-      />
-    </label>
+        <button
+          onClick={handleExplain}
+          disabled={loading || (!file && !policyText.trim())}
+        >
+          {loading ? "Interpreting…" : "Interpret Policy"}
+        </button>
 
+        {error && <p className="error">{error}</p>}
+      </div>
 
-      {/* --- Explain Button --- */}
-      <button
-      onClick={handleExplain}
-      disabled={loading}
-      className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
-      {loading ? "Explaining..." : "Explain"}
-      </button>
-
-
-      {/* --- Error Display --- */}
-      {error && (
-        <p className="text-red-600 mb-4">
-          {error}
-        </p>
-      )}
-
-      {/* --- Result Display --- */}
       {result && (
-        <div className="border rounded p-4 space-y-4">
-          <p>
-            <strong>Summary</strong>: {result.summary}
-          </p>
+        <div className="output">
+          <section>
+            <h3><strong>Summary</strong></h3>
+            <p>{result.summary}</p>
+          </section>
 
-          <div>
-            <strong>Obligations</strong>
-            <ul className="list-disc ml-5">
-              {result.obligations.map((o, i) => (
-                <li key={i}>{o}</li>
+          <section>
+            <h3><strong>Obligations</strong></h3>
+            <ul>
+              {result.obligations?.map((item: string, i: number) => (
+                <li key={i}>{item}</li>
               ))}
             </ul>
-          </div>
+          </section>
 
-          <div>
-            <strong>Options</strong>
-            <ul className="list-disc ml-5">
-              {result.options.map((o, i) => (
-                <li key={i}>{o}</li>
+          <section>
+            <h3><strong>Options</strong></h3>
+            <ul>
+              {result.options?.map((item: string, i: number) => (
+                <li key={i}>{item}</li>
               ))}
             </ul>
-          </div>
+          </section>
 
-          {result.risks && result.risks.length > 0 && (
-            <div>
-              <strong>Risks</strong>
-              <ul className="list-disc ml-5">
-                {result.risks.map((r, i) => (
-                  <li key={i}>{r}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {result.confidence && (
-            <p>
-              <strong>Confidence</strong>: {result.confidence}
-            </p>
-          )}
+          <section className="confidence">
+            <h3>
+              <strong>Confidence</strong>
+              <span className="tooltip">
+                ⓘ
+                <span className="tooltip-text">
+                  This score represents the AI’s confidence that the
+                  interpretation accurately reflects the source policy,
+                  based on clarity, consistency, and completeness of the input.
+                </span>
+              </span>
+            </h3>
+            <p>{result.confidence}%</p>
+          </section>
         </div>
       )}
     </main>
