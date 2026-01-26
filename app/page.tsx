@@ -44,7 +44,7 @@ export default function Home() {
 
       <div className="card">
         <textarea
-          placeholder="Paste council policy text here OR Upload a PDF or word document using the button below"
+          placeholder="Paste council policy text here OR Upload a PDF or word document using the button below. Please limit PDFs to 4 pages or less for better interpretation"
           value={policyText}
           onChange={(e) => setPolicyText(e.target.value)}
           rows={8}
