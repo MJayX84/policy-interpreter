@@ -36,8 +36,8 @@ export async function POST(req: Request) {
 
     // ---- Grounded LLM call ----
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.2,
+      model: "gpt-4.1-mini",
+      temperature: 0.5,
       messages: [
         {
           role: "system",
